@@ -17,6 +17,9 @@ export interface Product {
   colors: string[];
   dimensions: string | null;
   weight_approx: string | null;
+  allow_personalization?: boolean;
+  personalization_label?: string | null;
+  personalization_max_chars?: number;
   created_at: string;
   updated_at: string;
 }
@@ -46,6 +49,12 @@ export interface Order {
   order_items?: OrderItem[];
 }
 
+export interface ItemCustomAttributes {
+  custom_text?: string;
+  finish?: string;
+  [key: string]: unknown;
+}
+
 export interface OrderItem {
   id: string;
   order_id: string;
@@ -55,6 +64,7 @@ export interface OrderItem {
   unit_price: number;
   total_price: number;
   selected_color: string | null;
+  custom_attributes?: ItemCustomAttributes;
   created_at: string;
   product?: Product;
 }

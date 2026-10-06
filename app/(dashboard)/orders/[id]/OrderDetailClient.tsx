@@ -14,7 +14,8 @@ import {
   X, 
   ZoomIn, 
   Save, 
-  AlertCircle 
+  AlertCircle,
+  Sparkles
 } from 'lucide-react';
 import { Order, OrderStatus } from '@/types/database';
 import { formatPrice, formatDate, getStatusLabel } from '@/lib/utils';
@@ -109,7 +110,7 @@ export default function OrderDetailClient({ initialOrder }: OrderDetailClientPro
           order.customer_name,
           order.order_number,
           status,
-          getWhatsAppStatusTemplate(order.customer_name, order.order_number, status, customerMessage)
+          getWhatsAppStatusTemplate(order.customer_name, order.order_number, status, customerMessage, order.order_items)
         );
         window.open(url, '_blank');
       }
@@ -126,7 +127,7 @@ export default function OrderDetailClient({ initialOrder }: OrderDetailClientPro
     order.customer_name,
     order.order_number,
     status,
-    getWhatsAppStatusTemplate(order.customer_name, order.order_number, status, customerMessage)
+    getWhatsAppStatusTemplate(order.customer_name, order.order_number, status, customerMessage, order.order_items)
   );
 
   return (
@@ -200,7 +201,18 @@ export default function OrderDetailClient({ initialOrder }: OrderDetailClientPro
                   {order.order_items?.map((item) => (
                     <tr key={item.id} className="hover:bg-stone-50/50">
                       <td className="py-3 font-semibold text-stone-900">
-                        {item.product_name_ar}
+                        <div>{item.product_name_ar}</div>
+                        {item.custom_attributes?.custom_text && (
+                          <div className="inline-flex items-center gap-1 text-[11px] font-normal text-brass-700 bg-sand-100 border border-sand-300 px-2 py-0.5 rounded-md mt-1">
+                            <Sparkles className="w-3 h-3 text-brass-600 shrink-0" />
+                            <span>النقش المخصص: <strong className="font-bold text-stone-900">{item.custom_attributes.custom_text}</strong></span>
+                          </div>
+                        )}
+                        {item.custom_attributes?.finish && (
+                          <div className="text-[10px] text-stone-500 mt-0.5">
+                            التشطيب: <span className="font-semibold text-stone-700">{item.custom_attributes.finish}</span>
+                          </div>
+                        )}
                       </td>
                       <td className="py-3 text-stone-600">
                         {item.selected_color || 'افتراضي'}

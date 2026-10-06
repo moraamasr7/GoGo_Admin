@@ -12,7 +12,8 @@ import {
   AlertCircle, 
   Package, 
   Eye, 
-  EyeOff 
+  EyeOff,
+  Sparkles
 } from 'lucide-react';
 import { Product, CategoryKey } from '@/types/database';
 import { formatPrice, getCategoryLabel } from '@/lib/utils';
@@ -45,6 +46,11 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imageUploading, setImageUploading] = useState(false);
 
+  // Personalization fields
+  const [allowPersonalization, setAllowPersonalization] = useState<boolean>(false);
+  const [personalizationLabel, setPersonalizationLabel] = useState<string>('');
+  const [personalizationMaxChars, setPersonalizationMaxChars] = useState<number>(50);
+
   // Confirmation modal state
   const [confirmModal, setConfirmModal] = useState<{
     isOpen: boolean;
@@ -64,6 +70,9 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
     setDimensions('');
     setImageUrl('');
     setImageFile(null);
+    setAllowPersonalization(false);
+    setPersonalizationLabel('');
+    setPersonalizationMaxChars(50);
     setIsModalOpen(true);
   };
 
@@ -79,6 +88,9 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
     setDimensions(p.dimensions || '');
     setImageUrl(p.image_url || '');
     setImageFile(null);
+    setAllowPersonalization(p.allow_personalization ?? false);
+    setPersonalizationLabel(p.personalization_label || '');
+    setPersonalizationMaxChars(p.personalization_max_chars ?? 50);
     setIsModalOpen(true);
   };
 
@@ -146,6 +158,9 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
         description_ar: descriptionAr.trim() || null,
         dimensions: dimensions.trim() || null,
         image_url: imageUrl || null,
+        allow_personalization: Boolean(allowPersonalization),
+        personalization_label: personalizationLabel.trim() || null,
+        personalization_max_chars: Math.max(1, Number(personalizationMaxChars) || 50),
         updated_at: new Date().toISOString(),
       };
 
@@ -278,6 +293,12 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
                       <div className="font-bold text-stone-900 text-sm">{product.name_ar}</div>
                       {product.dimensions && (
                         <div className="text-[11px] text-stone-400" dir="ltr">{product.dimensions}</div>
+                      )}
+                      {product.allow_personalization && (
+                        <div className="inline-flex items-center gap-1 text-[10px] font-bold text-brass-700 bg-sand-100 border border-sand-300 px-2 py-0.5 rounded-md mt-1">
+                          <Sparkles className="w-3 h-3 text-brass-600" />
+                          <span>يقبل النقش والتخصيص</span>
+                        </div>
                       )}
                     </td>
 
@@ -483,6 +504,64 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
                   placeholder="صينية ديكورية بيضاوية متعددة الاستخدامات، مصبوبة يدوياً بخلطة كونكريت ناعمة..."
                   className="w-full px-3 py-2 rounded-xl border border-stone-200 text-xs focus:ring-2 focus:ring-stone-900 bg-stone-50/50"
                 />
+              </div>
+
+              {/* Personalization Section */}
+              <div className="p-4 rounded-2xl bg-stone-50/90 border border-stone-200 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-brass-600" />
+                    <div>
+                      <label htmlFor="allow-personalization-toggle" className="text-xs font-bold text-stone-900 cursor-pointer">
+                        إتاحة النقش / التخصيص للعميل
+                      </label>
+                      <p className="text-[11px] text-stone-500">
+                        السماح للمشتري بكتابة اسم أو إهداء يتم نقشه يدوياً على هذه القطعة
+                      </p>
+                    </div>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      id="allow-personalization-toggle"
+                      type="checkbox"
+                      checked={allowPersonalization}
+                      onChange={(e) => setAllowPersonalization(e.target.checked)}
+                      className="sr-only peer"
+                    />
+                    <div className="w-9 h-5 bg-stone-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-stone-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-stone-900"></div>
+                  </label>
+                </div>
+
+                {allowPersonalization && (
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 border-t border-stone-200">
+                    <div className="sm:col-span-2">
+                      <label className="block text-xs font-bold text-stone-700 mb-1">
+                        نص إرشاد التخصيص (Label)
+                      </label>
+                      <input
+                        type="text"
+                        value={personalizationLabel}
+                        onChange={(e) => setPersonalizationLabel(e.target.value)}
+                        placeholder="مثال: اكتب الأسماء أو عبارة الإهداء المطلوبة"
+                        className="w-full px-3 py-2 rounded-xl border border-stone-200 text-xs focus:ring-2 focus:ring-stone-900 bg-white"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-stone-700 mb-1">
+                        الحد الأقصى للأحرف
+                      </label>
+                      <input
+                        type="number"
+                        min="1"
+                        max="200"
+                        value={personalizationMaxChars}
+                        onChange={(e) => setPersonalizationMaxChars(Number(e.target.value))}
+                        className="w-full px-3 py-2 rounded-xl border border-stone-200 text-xs font-mono font-bold focus:ring-2 focus:ring-stone-900 bg-white"
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Product Image Section */}

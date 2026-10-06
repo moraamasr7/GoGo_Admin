@@ -1,5 +1,5 @@
 // lib/whatsapp.ts
-import { OrderStatus } from "@/types/database";
+import { OrderStatus, OrderItem } from "@/types/database";
 
 export const defaultStatusMessages: Record<OrderStatus, string> = {
   pending: "طلبك مسجل ونحن في انتظار مراجعة إيصال تحويل العربون لتأكيد الحجز.",
@@ -14,14 +14,31 @@ export function getWhatsAppStatusTemplate(
   customerName: string,
   orderNumber: string,
   status: OrderStatus,
-  customBody?: string
+  customBody?: string,
+  orderItems?: OrderItem[]
 ): string {
   const bodyText = customBody?.trim() || defaultStatusMessages[status] || `حالته الحالية: ${status}`;
+
+  let itemsCustomizationText = '';
+  if (orderItems && Array.isArray(orderItems)) {
+    const customizedItems = orderItems.filter(
+      i => i.custom_attributes && (i.custom_attributes.custom_text || i.custom_attributes.finish)
+    );
+    if (customizedItems.length > 0) {
+      itemsCustomizationText = `\n\n*تفاصيل التخصيص المطلوبة:*\n` +
+        customizedItems.map(i => {
+          let line = `• ${i.product_name_ar}`;
+          if (i.custom_attributes?.custom_text) line += ` - نقش: "${i.custom_attributes.custom_text}"`;
+          if (i.custom_attributes?.finish) line += ` (${i.custom_attributes.finish})`;
+          return line;
+        }).join('\n');
+    }
+  }
 
   return `مرحباً ${customerName} 👋
 معك إدارة *Gogo Concrete Store* بخصوص طلبك رقم *#${orderNumber}*:
 
-${bodyText}
+${bodyText}${itemsCustomizationText}
 
 يسعدنا دائماً خدمتك لأي استفسار 🏺✨`;
 }
