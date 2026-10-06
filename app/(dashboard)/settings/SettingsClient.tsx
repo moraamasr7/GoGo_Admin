@@ -50,6 +50,8 @@ export default function SettingsClient({ initialSettings }: SettingsClientProps)
     initialMap['store_subtitle'] || 'براند مصري لديكورات وتحف منزلية مصبوبة يدوياً بتشطيب ناعم وألوان هادئة تضيف لمسة فنية دافئة وأنيقة لكل زاوية في منزلك.'
   );
   const [headerLogoUrl, setHeaderLogoUrl] = useState(initialMap['header_logo_url'] || '');
+  const [brandMark, setBrandMark] = useState(initialMap['brand_mark'] || 'G');
+  const [faviconUrl, setFaviconUrl] = useState(initialMap['favicon_url'] || '');
 
   // 2. Hero Presentation
   const [heroEyebrow, setHeroEyebrow] = useState(initialMap['hero_eyebrow'] || 'تصاميم فاخرة وقطع ديكور مصنوعة يدوياً بمحبة ✨');
@@ -218,6 +220,7 @@ export default function SettingsClient({ initialSettings }: SettingsClientProps)
   const [isSaving, setIsSaving] = useState(false);
   const [isTogglingMaintenance, setIsTogglingMaintenance] = useState(false);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+  const [isUploadingFavicon, setIsUploadingFavicon] = useState(false);
   const [isUploadingBanner, setIsUploadingBanner] = useState(false);
   const [isUploadingPromo, setIsUploadingPromo] = useState(false);
   const [isUploadingOg, setIsUploadingOg] = useState(false);
@@ -253,9 +256,9 @@ export default function SettingsClient({ initialSettings }: SettingsClientProps)
     }
   };
 
-  const handleFileUpload = async (file: File, type: 'logo' | 'banner' | 'promo' | 'og') => {
-    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
-      toast.error('صيغة الصورة يجب أن تكون JPG أو PNG أو WEBP');
+  const handleFileUpload = async (file: File, type: 'logo' | 'favicon' | 'banner' | 'promo' | 'og') => {
+    if (!['image/jpeg', 'image/png', 'image/webp', 'image/x-icon', 'image/vnd.microsoft.icon'].includes(file.type)) {
+      toast.error('صيغة الصورة يجب أن تكون JPG أو PNG أو WEBP أو ICO');
       return;
     }
 
@@ -265,12 +268,13 @@ export default function SettingsClient({ initialSettings }: SettingsClientProps)
     }
 
     if (type === 'logo') setIsUploadingLogo(true);
+    else if (type === 'favicon') setIsUploadingFavicon(true);
     else if (type === 'banner') setIsUploadingBanner(true);
     else if (type === 'promo') setIsUploadingPromo(true);
     else setIsUploadingOg(true);
 
     try {
-      const ext = file.type === 'image/png' ? 'png' : file.type === 'image/webp' ? 'webp' : 'jpg';
+      const ext = file.type === 'image/png' ? 'png' : file.type === 'image/webp' ? 'webp' : file.type.includes('icon') ? 'ico' : 'jpg';
       const path = `branding/${type}-${Date.now()}-${Math.random().toString(36).substring(2, 7)}.${ext}`;
 
       const { data, error } = await supabase.storage
@@ -286,6 +290,9 @@ export default function SettingsClient({ initialSettings }: SettingsClientProps)
       if (type === 'logo') {
         setHeaderLogoUrl(publicUrlData.publicUrl);
         toast.success('تم رفع لوجو الهيدر بنجاح! ✨');
+      } else if (type === 'favicon') {
+        setFaviconUrl(publicUrlData.publicUrl);
+        toast.success('تم رفع أيقونة المتصفح (Favicon) بنجاح! 🌐');
       } else if (type === 'banner') {
         setHeroBannerUrl(publicUrlData.publicUrl);
         toast.success('تم رفع بانر المتجر بنجاح! ✨');
@@ -300,6 +307,7 @@ export default function SettingsClient({ initialSettings }: SettingsClientProps)
       toast.error(err.message || 'فشل رفع الصورة');
     } finally {
       if (type === 'logo') setIsUploadingLogo(false);
+      else if (type === 'favicon') setIsUploadingFavicon(false);
       else if (type === 'banner') setIsUploadingBanner(false);
       else if (type === 'promo') setIsUploadingPromo(false);
       else setIsUploadingOg(false);
@@ -376,6 +384,8 @@ export default function SettingsClient({ initialSettings }: SettingsClientProps)
       { key: 'store_name', value: storeName.trim() },
       { key: 'store_subtitle', value: storeSubtitle.trim() },
       { key: 'header_logo_url', value: headerLogoUrl.trim() },
+      { key: 'brand_mark', value: brandMark.trim() || 'G' },
+      { key: 'favicon_url', value: faviconUrl.trim() },
 
       // 2. Hero Presentation
       { key: 'hero_eyebrow', value: heroEyebrow.trim() },
@@ -491,13 +501,13 @@ export default function SettingsClient({ initialSettings }: SettingsClientProps)
 
       <form onSubmit={handleSaveAll} className="space-y-6">
 
-        {/* SECTION 1: Store Identity & Logo */}
-        <div className="p-6 sm:p-8 rounded-3xl bg-white dark:bg-stone-900 border border-stone-200/90 dark:border-stone-800 shadow-xs space-y-5">
+        {/* SECTION 1: Store Identity & Brand Governance */}
+        <div className="p-6 sm:p-8 rounded-3xl bg-white dark:bg-stone-900 border border-stone-200/90 dark:border-stone-800 shadow-xs space-y-6">
           <div className="flex items-center gap-2 pb-3 border-b border-stone-100 dark:border-stone-800">
             <Sparkles className="w-5 h-5 text-brass-500" />
             <div>
-              <h2 className="text-sm font-bold text-stone-900 dark:text-white">1. هوية المتجر والشعار (Store Identity)</h2>
-              <p className="text-[11px] text-stone-400 dark:text-stone-500">اسم المتجر والنبذة التعريفية التي تظهر في الهيدر والفووتر</p>
+              <h2 className="text-sm font-bold text-stone-900 dark:text-white">🎨 1. هوية المتجر والعلامة التجارية (Brand Identity)</h2>
+              <p className="text-[11px] text-stone-400 dark:text-stone-500">اسم المتجر، الشعار (Logo)، رمز الحرف الافتراضي (Brand Mark)، وأيقونة التبويب (Favicon)</p>
             </div>
           </div>
 
@@ -518,6 +528,20 @@ export default function SettingsClient({ initialSettings }: SettingsClientProps)
 
             <div>
               <label className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1.5">
+                رمز الشعار الافتراضي (Brand Mark / Fallback Letter)
+              </label>
+              <input
+                type="text"
+                maxLength={4}
+                value={brandMark}
+                onChange={(e) => setBrandMark(e.target.value)}
+                placeholder="G"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 dark:border-stone-700 text-xs focus:ring-2 focus:ring-stone-900 dark:focus:ring-brass-400 bg-stone-50/50 dark:bg-stone-800 dark:text-white font-bold text-center"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1.5">
                 العملة الرسمية
               </label>
               <input
@@ -530,12 +554,12 @@ export default function SettingsClient({ initialSettings }: SettingsClientProps)
               />
             </div>
 
-            <div className="sm:col-span-2">
+            <div>
               <label className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1.5">
                 النبذة التعريفية للبراند (Footer Brand Story)
               </label>
-              <textarea
-                rows={2}
+              <input
+                type="text"
                 value={storeSubtitle}
                 onChange={(e) => setStoreSubtitle(e.target.value)}
                 placeholder="براند مصري لديكورات وتحف منزلية مصبوبة يدوياً..."
@@ -544,65 +568,131 @@ export default function SettingsClient({ initialSettings }: SettingsClientProps)
             </div>
           </div>
 
-          {/* Logo Upload Box */}
-          <div className="p-4 rounded-2xl bg-stone-50 dark:bg-stone-800/50 border border-stone-200/80 dark:border-stone-700/80 space-y-3">
-            <div className="flex items-center justify-between">
-              <label className="text-xs font-bold text-stone-800 dark:text-stone-200">
-                لوجو وشعار الهيدر (Header Logo)
-              </label>
-              {headerLogoUrl && (
-                <button
-                  type="button"
-                  onClick={() => setHeaderLogoUrl('')}
-                  className="text-[11px] text-rose-600 dark:text-rose-400 hover:underline flex items-center gap-1 font-semibold"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                  <span>إزالة واستعادة الشعار النصي</span>
-                </button>
+          {/* Logo & Favicon Management Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+            
+            {/* Logo Upload Box */}
+            <div className="p-4 rounded-2xl bg-stone-50 dark:bg-stone-800/50 border border-stone-200/80 dark:border-stone-700/80 space-y-3">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-stone-800 dark:text-stone-200">
+                  لوجو وشعار الهيدر (Header Logo)
+                </label>
+                {headerLogoUrl && (
+                  <button
+                    type="button"
+                    onClick={() => setHeaderLogoUrl('')}
+                    className="text-[11px] text-rose-600 dark:text-rose-400 hover:underline flex items-center gap-1 font-semibold"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>إزالة واستعادة الرمز النصي</span>
+                  </button>
+                )}
+              </div>
+
+              {headerLogoUrl ? (
+                <div className="relative w-16 h-16 rounded-2xl overflow-hidden border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-800 shadow-xs mx-auto my-1">
+                  <Image
+                    src={headerLogoUrl}
+                    alt="Header Logo Preview"
+                    fill
+                    className="object-cover"
+                  />
+                </div>
+              ) : (
+                <div className="w-16 h-16 rounded-2xl border-2 border-dashed border-stone-300 dark:border-stone-700 bg-white/60 dark:bg-stone-800/40 flex flex-col items-center justify-center text-stone-400 mx-auto my-1">
+                  <span className="text-base font-black text-brass-500">{brandMark || 'G'}</span>
+                  <span className="text-[8px]">افتراضي</span>
+                </div>
               )}
-            </div>
 
-            {headerLogoUrl ? (
-              <div className="relative w-16 h-16 rounded-2xl overflow-hidden border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-800 shadow-xs mx-auto my-1">
-                <Image
-                  src={headerLogoUrl}
-                  alt="Header Logo Preview"
-                  fill
-                  className="object-cover"
-                />
-              </div>
-            ) : (
-              <div className="w-16 h-16 rounded-2xl border-2 border-dashed border-stone-300 dark:border-stone-700 bg-white/60 dark:bg-stone-800/40 flex flex-col items-center justify-center text-stone-400 mx-auto my-1">
-                <span className="text-base font-black text-brass-500">G</span>
-                <span className="text-[8px]">افتراضي</span>
-              </div>
-            )}
+              <div className="flex flex-col sm:flex-row items-center gap-2">
+                <label className="w-full sm:w-auto cursor-pointer inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 hover:border-stone-400 text-xs font-bold text-stone-800 dark:text-stone-200 transition-colors shadow-xs">
+                  <Upload className="w-3.5 h-3.5 text-stone-600 dark:text-stone-400" />
+                  <span>{isUploadingLogo ? 'جاري الرفع...' : 'رفع لوجو'}</span>
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp"
+                    className="hidden"
+                    disabled={isUploadingLogo}
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handleFileUpload(file, 'logo');
+                    }}
+                  />
+                </label>
 
-            <div className="flex flex-col sm:flex-row items-center gap-2">
-              <label className="w-full sm:w-auto cursor-pointer inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 hover:border-stone-400 text-xs font-bold text-stone-800 dark:text-stone-200 transition-colors shadow-xs">
-                <Upload className="w-3.5 h-3.5 text-stone-600 dark:text-stone-400" />
-                <span>{isUploadingLogo ? 'جاري الرفع...' : 'رفع لوجو جديد'}</span>
                 <input
-                  type="file"
-                  accept="image/png,image/jpeg,image/webp"
-                  className="hidden"
-                  disabled={isUploadingLogo}
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) handleFileUpload(file, 'logo');
-                  }}
+                  type="url"
+                  dir="ltr"
+                  placeholder="رابط اللوجو: https://..."
+                  value={headerLogoUrl}
+                  onChange={(e) => setHeaderLogoUrl(e.target.value)}
+                  className="w-full flex-1 px-3 py-2 rounded-xl border border-stone-200 dark:border-stone-700 text-[11px] font-mono text-left bg-white dark:bg-stone-800 dark:text-white"
                 />
-              </label>
-
-              <input
-                type="url"
-                dir="ltr"
-                placeholder="أو أدخل رابط اللوجو مباشرة: https://..."
-                value={headerLogoUrl}
-                onChange={(e) => setHeaderLogoUrl(e.target.value)}
-                className="w-full flex-1 px-3 py-2 rounded-xl border border-stone-200 dark:border-stone-700 text-[11px] font-mono text-left bg-white dark:bg-stone-800 dark:text-white"
-              />
+              </div>
             </div>
+
+            {/* Favicon Upload Box */}
+            <div className="p-4 rounded-2xl bg-stone-50 dark:bg-stone-800/50 border border-stone-200/80 dark:border-stone-700/80 space-y-3">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-stone-800 dark:text-stone-200">
+                  أيقونة المتصفح (Favicon)
+                </label>
+                {faviconUrl && (
+                  <button
+                    type="button"
+                    onClick={() => setFaviconUrl('')}
+                    className="text-[11px] text-rose-600 dark:text-rose-400 hover:underline flex items-center gap-1 font-semibold"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>إزالة واستعادة الافتراضي</span>
+                  </button>
+                )}
+              </div>
+
+              {faviconUrl ? (
+                <div className="relative w-12 h-12 rounded-xl overflow-hidden border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-800 shadow-xs mx-auto my-1">
+                  <Image
+                    src={faviconUrl}
+                    alt="Favicon Preview"
+                    fill
+                    className="object-contain p-1"
+                  />
+                </div>
+              ) : (
+                <div className="w-12 h-12 rounded-xl border-2 border-dashed border-stone-300 dark:border-stone-700 bg-white/60 dark:bg-stone-800/40 flex flex-col items-center justify-center text-stone-400 mx-auto my-1">
+                  <span className="text-sm font-bold text-stone-500">🌐</span>
+                  <span className="text-[7px]">افتراضي</span>
+                </div>
+              )}
+
+              <div className="flex flex-col sm:flex-row items-center gap-2">
+                <label className="w-full sm:w-auto cursor-pointer inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 hover:border-stone-400 text-xs font-bold text-stone-800 dark:text-stone-200 transition-colors shadow-xs">
+                  <Upload className="w-3.5 h-3.5 text-stone-600 dark:text-stone-400" />
+                  <span>{isUploadingFavicon ? 'جاري الرفع...' : 'رفع أيقونة'}</span>
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp,image/x-icon,image/vnd.microsoft.icon"
+                    className="hidden"
+                    disabled={isUploadingFavicon}
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handleFileUpload(file, 'favicon');
+                    }}
+                  />
+                </label>
+
+                <input
+                  type="url"
+                  dir="ltr"
+                  placeholder="رابط الأيقونة: https://..."
+                  value={faviconUrl}
+                  onChange={(e) => setFaviconUrl(e.target.value)}
+                  className="w-full flex-1 px-3 py-2 rounded-xl border border-stone-200 dark:border-stone-700 text-[11px] font-mono text-left bg-white dark:bg-stone-800 dark:text-white"
+                />
+              </div>
+            </div>
+
           </div>
         </div>
 

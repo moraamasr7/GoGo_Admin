@@ -230,6 +230,8 @@ export interface StorePublicSettings {
   store_name: string;
   store_subtitle?: string;
   header_logo_url?: string;
+  brand_mark?: string;
+  favicon_url?: string;
   // 2. Hero Presentation
   hero_eyebrow?: string;
   hero_title?: string;
