@@ -92,7 +92,7 @@ export default function AdminLayout({
         {/* Bottom Actions: View Storefront & Logout */}
         <div className="pt-4 border-t border-stone-800 space-y-2">
           <a
-            href={process.env.NEXT_PUBLIC_STOREFRONT_URL || '/'}
+            href={process.env.NEXT_PUBLIC_STOREFRONT_URL || 'https://gogo-store-ten.vercel.app/'}
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center justify-between px-3.5 py-2 rounded-xl text-xs font-medium text-stone-400 hover:bg-stone-800 hover:text-white transition-colors"
@@ -157,6 +157,19 @@ export default function AdminLayout({
                 </Link>
               );
             })}
+            <a
+              href={process.env.NEXT_PUBLIC_STOREFRONT_URL || 'https://gogo-store-ten.vercel.app/'}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => setMobileMenuOpen(false)}
+              className="flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold text-stone-300 hover:bg-stone-800 hover:text-white transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <Store className="w-4 h-4 text-brass-400" />
+                <span>معاينة متجر العميل</span>
+              </div>
+              <ExternalLink className="w-3.5 h-3.5" />
+            </a>
             <button
               onClick={handleLogout}
               className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-xs text-rose-400 font-semibold pt-3 border-t border-stone-800"
