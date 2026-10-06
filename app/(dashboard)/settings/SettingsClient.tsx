@@ -4,19 +4,19 @@ import React, { useState } from 'react';
 import Image from 'next/image';
 import { SettingItem, CategoryConfig, CollectionConfig, DEFAULT_CATEGORY_CONFIGS, DEFAULT_COLLECTION_CONFIGS } from '@/types/database';
 import { createClient } from '@/lib/supabase/client';
-import { 
-  Save, 
-  Smartphone, 
-  Coins, 
-  Hammer, 
-  ImageIcon, 
-  Upload, 
-  Trash2, 
-  Sparkles, 
-  Phone, 
-  Mail, 
-  Instagram, 
-  Truck, 
+import {
+  Save,
+  Smartphone,
+  Coins,
+  Hammer,
+  ImageIcon,
+  Upload,
+  Trash2,
+  Sparkles,
+  Phone,
+  Mail,
+  Instagram,
+  Truck,
   Search,
   AlertTriangle,
   CheckCircle2,
@@ -71,7 +71,7 @@ export default function SettingsClient({ initialSettings }: SettingsClientProps)
       try {
         const parsed = JSON.parse(initialMap['catalog_categories_config']);
         if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      } catch {}
+      } catch { }
     }
     return DEFAULT_CATEGORY_CONFIGS;
   });
@@ -81,7 +81,7 @@ export default function SettingsClient({ initialSettings }: SettingsClientProps)
       try {
         const parsed = JSON.parse(initialMap['catalog_collections_config']);
         if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      } catch {}
+      } catch { }
     }
     return DEFAULT_COLLECTION_CONFIGS;
   });
@@ -95,7 +95,7 @@ export default function SettingsClient({ initialSettings }: SettingsClientProps)
   const [isAddingCollection, setIsAddingCollection] = useState(false);
 
   // 4. Commerce & Payments
-  const [vodafoneCash, setVodafoneCash] = useState(initialMap['vodafone_cash'] || '01012345678');
+  const [vodafoneCash, setVodafoneCash] = useState(initialMap['vodafone_cash'] || '01150014792');
   const [instapay, setInstapay] = useState(initialMap['instapay'] || 'gogo.designs@instapay');
   const [depositPercentage, setDepositPercentage] = useState(initialMap['deposit_percentage'] || '50');
   const [currency, setCurrency] = useState(initialMap['currency'] || 'ج.م');
@@ -104,7 +104,7 @@ export default function SettingsClient({ initialSettings }: SettingsClientProps)
   );
 
   // 5. Contact & Shipping
-  const [whatsappNumber, setWhatsappNumber] = useState(initialMap['whatsapp_number'] || '201012345678');
+  const [whatsappNumber, setWhatsappNumber] = useState(initialMap['whatsapp_number'] || '201150014792');
   const [contactEmail, setContactEmail] = useState(initialMap['contact_email'] || 'contact@gogodesigns.com');
   const [instagramUrl, setInstagramUrl] = useState(initialMap['instagram_url'] || 'https://instagram.com/gogo_designs');
   const [shippingInstructions, setShippingInstructions] = useState(
@@ -479,7 +479,7 @@ export default function SettingsClient({ initialSettings }: SettingsClientProps)
 
   return (
     <div className="space-y-6 max-w-4xl">
-      
+
       <div>
         <h1 className="text-2xl sm:text-3xl font-black text-stone-900 dark:text-white tracking-tight">
           إعدادات وحوكمة المتجر والصفحة الرئيسية
@@ -490,7 +490,7 @@ export default function SettingsClient({ initialSettings }: SettingsClientProps)
       </div>
 
       <form onSubmit={handleSaveAll} className="space-y-6">
-        
+
         {/* SECTION 1: Store Identity & Logo */}
         <div className="p-6 sm:p-8 rounded-3xl bg-white dark:bg-stone-900 border border-stone-200/90 dark:border-stone-800 shadow-xs space-y-5">
           <div className="flex items-center gap-2 pb-3 border-b border-stone-100 dark:border-stone-800">
@@ -723,7 +723,7 @@ export default function SettingsClient({ initialSettings }: SettingsClientProps)
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            
+
             {/* Toggle 1: Categories */}
             <div className="p-4 rounded-2xl bg-stone-50 dark:bg-stone-800/50 border border-stone-200 dark:border-stone-700 flex items-center justify-between">
               <div>
@@ -812,8 +812,8 @@ export default function SettingsClient({ initialSettings }: SettingsClientProps)
 
           <div className="space-y-4">
             {categoriesConfig.map((cat, idx) => (
-              <div 
-                key={cat.key} 
+              <div
+                key={cat.key}
                 className="p-4 sm:p-5 rounded-2xl bg-stone-50/70 dark:bg-stone-800/40 border border-stone-200 dark:border-stone-700/80 space-y-3.5 transition-all hover:border-stone-300 dark:hover:border-stone-600"
               >
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2.5 border-b border-stone-200/60 dark:border-stone-700/60">
@@ -1041,8 +1041,8 @@ export default function SettingsClient({ initialSettings }: SettingsClientProps)
           {/* Collections List */}
           <div className="space-y-4">
             {collectionsConfig.map((col, idx) => (
-              <div 
-                key={col.key} 
+              <div
+                key={col.key}
                 className="p-4 sm:p-5 rounded-2xl bg-stone-50/70 dark:bg-stone-800/40 border border-stone-200 dark:border-stone-700/80 space-y-3.5"
               >
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2.5 border-b border-stone-200/60 dark:border-stone-700/60">
@@ -2008,14 +2008,12 @@ export default function SettingsClient({ initialSettings }: SettingsClientProps)
               disabled={isTogglingMaintenance}
               onClick={handleToggleMaintenance}
               aria-label="تبديل وضع الصيانة"
-              className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none disabled:opacity-50 ${
-                maintenanceMode ? 'bg-amber-600' : 'bg-stone-300 dark:bg-stone-700'
-              }`}
+              className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none disabled:opacity-50 ${maintenanceMode ? 'bg-amber-600' : 'bg-stone-300 dark:bg-stone-700'
+                }`}
             >
               <span
-                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                  maintenanceMode ? '-translate-x-5' : 'translate-x-0'
-                }`}
+                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${maintenanceMode ? '-translate-x-5' : 'translate-x-0'
+                  }`}
               />
             </button>
           </div>
