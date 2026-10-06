@@ -13,12 +13,18 @@ import {
   Package, 
   Eye, 
   EyeOff,
-  Sparkles
+  Sparkles,
+  Palette,
+  Tag,
+  Layers,
+  DollarSign,
+  FileText
 } from 'lucide-react';
 import { Product, CategoryKey } from '@/types/database';
 import { formatPrice, getCategoryLabel } from '@/lib/utils';
 import { createClient } from '@/lib/supabase/client';
 import { toast } from 'react-hot-toast';
+import { Button } from '@/components/ui/Button';
 
 interface ProductsClientProps {
   initialProducts: Product[];
@@ -38,12 +44,13 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
   const [nameEn, setNameEn] = useState('');
   const [slug, setSlug] = useState('');
   const [category, setCategory] = useState<CategoryKey>('trays');
+  const [collection, setCollection] = useState<string>('');
+  const [isUnfinished, setIsUnfinished] = useState<boolean>(false);
   const [price, setPrice] = useState<number>(300);
   const [stock, setStock] = useState<number>(10);
   const [descriptionAr, setDescriptionAr] = useState('');
   const [dimensions, setDimensions] = useState('');
   const [imageUrl, setImageUrl] = useState('');
-  const [imageFile, setImageFile] = useState<File | null>(null);
   const [imageUploading, setImageUploading] = useState(false);
 
   // Personalization fields
@@ -64,12 +71,13 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
     setNameEn('');
     setSlug('');
     setCategory('trays');
+    setCollection('');
+    setIsUnfinished(false);
     setPrice(300);
     setStock(10);
     setDescriptionAr('');
     setDimensions('');
     setImageUrl('');
-    setImageFile(null);
     setAllowPersonalization(false);
     setPersonalizationLabel('');
     setPersonalizationMaxChars(50);
@@ -82,12 +90,13 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
     setNameEn(p.name_en || '');
     setSlug(p.slug);
     setCategory(p.category);
+    setCollection(p.collection || '');
+    setIsUnfinished(Boolean(p.is_unfinished));
     setPrice(Number(p.price));
     setStock(p.stock);
     setDescriptionAr(p.description_ar || '');
     setDimensions(p.dimensions || '');
     setImageUrl(p.image_url || '');
-    setImageFile(null);
     setAllowPersonalization(p.allow_personalization ?? false);
     setPersonalizationLabel(p.personalization_label || '');
     setPersonalizationMaxChars(p.personalization_max_chars ?? 50);
@@ -153,6 +162,8 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
         name_en: nameEn.trim() || null,
         slug: slug.trim().toLowerCase(),
         category,
+        collection: collection.trim() || null,
+        is_unfinished: Boolean(isUnfinished),
         price: Number(price),
         stock: Number(stock),
         description_ar: descriptionAr.trim() || null,
@@ -231,324 +242,529 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
       {/* Header & Add Button */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-black text-stone-900 tracking-tight">
+          <h1 className="text-2xl sm:text-3xl font-black text-stone-900 dark:text-white tracking-tight">
             إدارة المنتجات والقطع
           </h1>
-          <p className="text-xs sm:text-sm text-stone-500 mt-1">
-            إضافة وتعديل الأسعار والمخزون وصور قطع الكونكريت الديكوري
+          <p className="text-xs sm:text-sm text-stone-500 dark:text-stone-400 mt-1">
+            إضافة وتعديل التصنيفات والمجموعات والأسعار والمخزون
           </p>
         </div>
 
-        <button
-          type="button"
+        <Button
           onClick={openCreateModal}
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-stone-900 hover:bg-stone-800 text-sand-50 text-xs font-bold shadow-sm transition-all active:scale-95 self-start"
+          variant="primary"
+          size="md"
+          leftIcon={<Plus className="w-4 h-4 text-brass-400 dark:text-stone-950" />}
+          className="self-start sm:self-auto"
         >
-          <Plus className="w-4 h-4 text-brass-400" />
-          <span>إضافة قطعة كونكريت جديدة</span>
-        </button>
+          إضافة قطعة جديدة
+        </Button>
       </div>
 
-      {/* Products Table */}
-      <div className="bg-white rounded-3xl border border-stone-200 shadow-sm overflow-hidden">
-        {products.length === 0 ? (
-          <div className="text-center py-16 text-stone-400 text-xs">
-            لا توجد منتجات مسجلة حتى الآن.
+      {/* Products Content: Empty State */}
+      {products.length === 0 ? (
+        <div className="text-center py-16 px-4 bg-white dark:bg-stone-900 rounded-3xl border border-stone-200/90 dark:border-stone-800 shadow-xs">
+          <div className="w-12 h-12 rounded-2xl bg-stone-100 dark:bg-stone-800 text-stone-400 flex items-center justify-center mx-auto mb-3">
+            <Package className="w-6 h-6" />
           </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-right text-xs">
-              <thead>
-                <tr className="bg-stone-50/80 text-stone-400 border-b border-stone-100 font-semibold">
-                  <th className="py-3.5 pr-6">الصورة</th>
-                  <th className="py-3.5 px-4">اسم القطعة</th>
-                  <th className="py-3.5 px-4">الفئة</th>
-                  <th className="py-3.5 px-4">السعر</th>
-                  <th className="py-3.5 px-4">المخزون</th>
-                  <th className="py-3.5 px-4">الحالة</th>
-                  <th className="py-3.5 pl-6 text-left">الإجراءات</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-stone-100 font-medium">
-                {products.map((product) => (
-                  <tr key={product.id} className="hover:bg-stone-50/70 transition-colors">
-                    <td className="py-3 pr-6">
-                      <div className="relative w-12 h-12 rounded-xl overflow-hidden bg-sand-100 border border-stone-200 shrink-0">
-                        {product.image_url ? (
-                          <Image
-                            src={product.image_url}
-                            alt={product.name_ar}
-                            fill
-                            className="object-cover"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-[10px] text-stone-400">
-                            صورة
-                          </div>
-                        )}
+          <p className="text-xs font-bold text-stone-900 dark:text-white">لا توجد منتجات مسجلة بعد</p>
+          <p className="text-[11px] text-stone-400 dark:text-stone-500 mt-1">اضغط على زر "إضافة قطعة جديدة" لإضافة أول منتج</p>
+        </div>
+      ) : (
+        <>
+          {/* Mobile Card View (< md) */}
+          <div className="md:hidden space-y-3">
+            {products.map((product) => (
+              <div
+                key={product.id}
+                className="p-4 rounded-3xl bg-white dark:bg-stone-900 border border-stone-200/90 dark:border-stone-800 shadow-xs space-y-3"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="relative w-14 h-14 rounded-2xl overflow-hidden bg-sand-100 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 shrink-0">
+                    {product.image_url ? (
+                      <Image
+                        src={product.image_url}
+                        alt={product.name_ar}
+                        fill
+                        className="object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-[10px] text-stone-400">
+                        صورة
                       </div>
-                    </td>
+                    )}
+                  </div>
 
-                    <td className="py-3 px-4">
-                      <div className="font-bold text-stone-900 text-sm">{product.name_ar}</div>
-                      {product.dimensions && (
-                        <div className="text-[11px] text-stone-400" dir="ltr">{product.dimensions}</div>
-                      )}
-                      {product.allow_personalization && (
-                        <div className="inline-flex items-center gap-1 text-[10px] font-bold text-brass-700 bg-sand-100 border border-sand-300 px-2 py-0.5 rounded-md mt-1">
-                          <Sparkles className="w-3 h-3 text-brass-600" />
-                          <span>يقبل النقش والتخصيص</span>
-                        </div>
-                      )}
-                    </td>
-
-                    <td className="py-3 px-4">
-                      <span className="inline-block px-2.5 py-0.5 rounded-full bg-sand-100 text-stone-800 text-[11px] font-semibold border border-stone-200">
-                        {getCategoryLabel(product.category)}
-                      </span>
-                    </td>
-
-                    <td className="py-3 px-4 font-mono font-bold text-stone-900">
-                      {formatPrice(product.price)}
-                    </td>
-
-                    <td className="py-3 px-4">
-                      <span className={`inline-block font-mono font-bold px-2 py-0.5 rounded-md text-[11px] ${
-                        product.stock <= 3 
-                          ? 'bg-rose-50 text-rose-700 border border-rose-200' 
-                          : 'bg-stone-100 text-stone-800'
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-bold text-stone-900 dark:text-white text-sm truncate">{product.name_ar}</h3>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <span className="font-mono font-bold text-xs text-stone-900 dark:text-brass-400">{formatPrice(product.price)}</span>
+                      <span className="text-[10px] text-stone-400">•</span>
+                      <span className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded ${
+                        product.stock <= 3
+                          ? 'bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300'
+                          : 'bg-stone-100 text-stone-700 dark:bg-stone-800 dark:text-stone-300'
                       }`}>
-                        {product.stock} قطعة
+                        مخزون: {product.stock}
                       </span>
-                    </td>
+                    </div>
+                  </div>
 
-                    <td className="py-3 px-4">
-                      {product.is_active ? (
-                        <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
-                          نشط ومعروض
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 text-[11px] font-bold text-stone-500 bg-stone-100 px-2.5 py-0.5 rounded-full border border-stone-200">
-                          معطل (مخفي)
-                        </span>
-                      )}
-                    </td>
+                  <div>
+                    {product.is_active ? (
+                      <span className="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-xs" title="نشط" />
+                    ) : (
+                      <span className="inline-block w-2.5 h-2.5 rounded-full bg-stone-300 dark:bg-stone-600" title="معطل" />
+                    )}
+                  </div>
+                </div>
 
-                    <td className="py-3 pl-6 text-left whitespace-nowrap space-x-2 space-x-reverse">
-                      <button
-                        type="button"
-                        onClick={() => openEditModal(product)}
-                        className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-800 text-[11px] font-semibold transition-colors"
-                        title="تعديل المنتج"
-                      >
-                        <Edit className="w-3.5 h-3.5" />
-                        <span>تعديل</span>
-                      </button>
+                {/* Badges row */}
+                <div className="flex flex-wrap items-center gap-1.5 pt-1 border-t border-stone-100 dark:border-stone-800/80">
+                  <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-sand-100 dark:bg-stone-800 text-stone-800 dark:text-stone-200 border border-stone-200 dark:border-stone-700">
+                    {getCategoryLabel(product.category)}
+                  </span>
 
-                      <button
-                        type="button"
-                        onClick={() => setConfirmModal({ isOpen: true, product, action: 'toggle' })}
-                        className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold transition-colors ${
-                          product.is_active
-                            ? 'bg-amber-50 hover:bg-amber-100 text-amber-800'
-                            : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800'
-                        }`}
-                        title={product.is_active ? 'إخفاء المنتج من المتجر' : 'إظهار المنتج في المتجر'}
-                      >
-                        {product.is_active ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                        <span>{product.is_active ? 'إخفاء' : 'تفعيل'}</span>
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                  {product.collection && (
+                    <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-purple-50 dark:bg-purple-950/60 text-purple-800 dark:text-purple-300 border border-purple-200 dark:border-purple-800">
+                      {product.collection === 'ramadan' ? '🌙 رمضان' : product.collection}
+                    </span>
+                  )}
+
+                  {product.is_unfinished && (
+                    <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-stone-100 dark:bg-stone-800 text-stone-700 dark:text-stone-300 border border-stone-300 dark:border-stone-600">
+                      بدون فنش
+                    </span>
+                  )}
+
+                  {product.allow_personalization && (
+                    <span className="px-1.5 py-0.5 rounded-md text-[10px] font-bold text-brass-700 dark:text-brass-400 bg-sand-100 dark:bg-stone-800 border border-sand-300 dark:border-stone-700">
+                      تخصيص
+                    </span>
+                  )}
+                </div>
+
+                {/* Mobile action buttons */}
+                <div className="flex items-center gap-2 pt-1">
+                  <Button
+                    onClick={() => openEditModal(product)}
+                    variant="secondary"
+                    size="sm"
+                    leftIcon={<Edit className="w-3.5 h-3.5" />}
+                    className="flex-1"
+                  >
+                    تعديل
+                  </Button>
+
+                  <Button
+                    onClick={() => setConfirmModal({ isOpen: true, product, action: 'toggle' })}
+                    variant={product.is_active ? 'outline' : 'secondary'}
+                    size="sm"
+                    leftIcon={product.is_active ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                  >
+                    {product.is_active ? 'إخفاء' : 'تفعيل'}
+                  </Button>
+                </div>
+              </div>
+            ))}
           </div>
-        )}
-      </div>
 
-      {/* Add / Edit Product Modal */}
+          {/* Desktop & Tablet Table (>= md) */}
+          <div className="hidden md:block bg-white dark:bg-stone-900 rounded-3xl border border-stone-200/90 dark:border-stone-800 shadow-xs overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-right text-xs">
+                <thead>
+                  <tr className="bg-stone-50/80 dark:bg-stone-800/50 text-stone-400 dark:text-stone-400 border-b border-stone-100 dark:border-stone-800 font-semibold">
+                    <th className="py-3.5 pr-6">الصورة</th>
+                    <th className="py-3.5 px-4">اسم القطعة</th>
+                    <th className="py-3.5 px-4">الفئة والخصائص</th>
+                    <th className="py-3.5 px-4">السعر</th>
+                    <th className="py-3.5 px-4">المخزون</th>
+                    <th className="py-3.5 px-4">الحالة</th>
+                    <th className="py-3.5 pl-6 text-left">الإجراءات</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-stone-100 dark:divide-stone-800 font-medium">
+                  {products.map((product) => (
+                    <tr key={product.id} className="hover:bg-stone-50/70 dark:hover:bg-stone-800/40 transition-colors">
+                      <td className="py-3 pr-6">
+                        <div className="relative w-12 h-12 rounded-2xl overflow-hidden bg-sand-100 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 shrink-0">
+                          {product.image_url ? (
+                            <Image
+                              src={product.image_url}
+                              alt={product.name_ar}
+                              fill
+                              className="object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-[10px] text-stone-400">
+                              صورة
+                            </div>
+                          )}
+                        </div>
+                      </td>
+
+                      <td className="py-3 px-4">
+                        <div className="font-bold text-stone-900 dark:text-white text-sm">{product.name_ar}</div>
+                        {product.dimensions && (
+                          <div className="text-[11px] text-stone-400 dark:text-stone-500" dir="ltr">{product.dimensions}</div>
+                        )}
+                      </td>
+
+                      <td className="py-3 px-4">
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <span className={`inline-block px-2 py-0.5 rounded-md text-[10px] font-bold border ${
+                            product.category === 'gift_sets'
+                              ? 'bg-amber-50 dark:bg-amber-950/60 text-amber-900 dark:text-amber-300 border-amber-300 dark:border-amber-800'
+                              : product.category === 'ready_sets'
+                              ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-900 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800'
+                              : 'bg-sand-100 dark:bg-stone-800 text-stone-800 dark:text-stone-200 border-stone-200 dark:border-stone-700'
+                          }`}>
+                            {getCategoryLabel(product.category)}
+                          </span>
+
+                          {product.collection && (
+                            <span className="inline-flex items-center gap-0.5 text-[10px] font-bold px-2 py-0.5 rounded-md bg-purple-50 dark:bg-purple-950/60 text-purple-800 dark:text-purple-300 border border-purple-200 dark:border-purple-800">
+                              <Tag className="w-2.5 h-2.5" />
+                              <span>{product.collection === 'ramadan' ? '🌙 رمضان' : product.collection}</span>
+                            </span>
+                          )}
+
+                          {product.is_unfinished && (
+                            <span className="inline-flex items-center gap-0.5 text-[10px] font-bold px-2 py-0.5 rounded-md bg-stone-100 dark:bg-stone-800 text-stone-700 dark:text-stone-300 border border-stone-300 dark:border-stone-600">
+                              <Palette className="w-2.5 h-2.5 text-stone-600 dark:text-stone-400" />
+                              <span>بدون فنش</span>
+                            </span>
+                          )}
+
+                          {product.allow_personalization && (
+                            <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-brass-700 dark:text-brass-400 bg-sand-100 dark:bg-stone-800 border border-sand-300 dark:border-stone-700 px-1.5 py-0.5 rounded-md">
+                              <Sparkles className="w-2.5 h-2.5 text-brass-600 dark:text-brass-400" />
+                              <span>تخصيص</span>
+                            </span>
+                          )}
+                        </div>
+                      </td>
+
+                      <td className="py-3 px-4 font-mono font-bold text-stone-900 dark:text-white">
+                        {formatPrice(product.price)}
+                      </td>
+
+                      <td className="py-3 px-4">
+                        <span className={`inline-block font-mono font-bold px-2.5 py-1 rounded-xl text-[11px] border ${
+                          product.stock <= 3 
+                            ? 'bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800' 
+                            : 'bg-stone-100 dark:bg-stone-800 text-stone-800 dark:text-stone-200 border-stone-200 dark:border-stone-700'
+                        }`}>
+                          {product.stock} قطعة
+                        </span>
+                      </td>
+
+                      <td className="py-3 px-4">
+                        {product.is_active ? (
+                          <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-2.5 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800">
+                            نشط ومعروض
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 text-[11px] font-bold text-stone-500 dark:text-stone-400 bg-stone-100 dark:bg-stone-800 px-2.5 py-0.5 rounded-full border border-stone-200 dark:border-stone-700">
+                            معطل (مخفي)
+                          </span>
+                        )}
+                      </td>
+
+                      <td className="py-3 pl-6 text-left whitespace-nowrap">
+                        <div className="flex items-center justify-end gap-1.5">
+                          <Button
+                            onClick={() => openEditModal(product)}
+                            variant="secondary"
+                            size="sm"
+                            leftIcon={<Edit className="w-3.5 h-3.5" />}
+                          >
+                            تعديل
+                          </Button>
+
+                          <Button
+                            onClick={() => setConfirmModal({ isOpen: true, product, action: 'toggle' })}
+                            variant={product.is_active ? 'outline' : 'secondary'}
+                            size="sm"
+                            leftIcon={product.is_active ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                          >
+                            {product.is_active ? 'إخفاء' : 'تفعيل'}
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Add / Edit Product Modal with 6 Grouped Sections & Sticky Header/Footer */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 bg-stone-950/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="relative max-w-xl w-full bg-white rounded-3xl p-6 sm:p-8 shadow-2xl overflow-y-auto max-h-[90vh]">
+        <div className="fixed inset-0 z-50 bg-stone-950/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4">
+          <div className="relative max-w-2xl w-full bg-white dark:bg-stone-900 rounded-3xl shadow-2xl border border-stone-200 dark:border-stone-800 flex flex-col max-h-[92vh] overflow-hidden">
             
-            <div className="flex items-center justify-between pb-3 mb-5 border-b border-stone-100">
-              <h3 className="font-bold text-base text-stone-900">
-                {editingProduct ? 'تعديل قطعة الكونكريت' : 'إضافة قطعة كونكريت جديدة'}
-              </h3>
+            {/* Sticky Header */}
+            <div className="flex items-center justify-between p-5 sm:p-6 border-b border-stone-100 dark:border-stone-800 bg-white/95 dark:bg-stone-900/95 backdrop-blur shrink-0">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-brass-500/10 text-brass-600 dark:text-brass-400 flex items-center justify-center font-bold">
+                  <Package className="w-5 h-5" />
+                </div>
+                <h3 className="font-bold text-base text-stone-900 dark:text-white">
+                  {editingProduct ? 'تعديل قطعة الديكور' : 'إضافة قطعة ديكور جديدة'}
+                </h3>
+              </div>
               <button
                 type="button"
                 onClick={() => setIsModalOpen(false)}
-                className="p-1.5 rounded-lg text-stone-400 hover:bg-stone-100 hover:text-stone-800"
+                className="p-2 rounded-xl text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800 hover:text-stone-800 dark:hover:text-white transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleSaveProduct} className="space-y-4">
+            {/* Scrollable Form Body */}
+            <form id="product-form" onSubmit={handleSaveProduct} className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-6">
               
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-stone-700 mb-1">
-                    اسم المنتج (بالعربي) <span className="text-rose-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={nameAr}
-                    onChange={(e) => handleNameChange(e.target.value)}
-                    placeholder="مثال: صينية بيضاوية ماربل"
-                    className="w-full px-3 py-2 rounded-xl border border-stone-200 text-xs focus:ring-2 focus:ring-stone-900 bg-stone-50/50"
-                  />
+              {/* SECTION 1: Basic Product Information */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-stone-50/70 dark:bg-stone-800/40 border border-stone-200/80 dark:border-stone-800 space-y-4">
+                <div className="flex items-center gap-2 pb-2 border-b border-stone-200/60 dark:border-stone-700/60">
+                  <FileText className="w-4 h-4 text-stone-600 dark:text-stone-400" />
+                  <h4 className="text-xs font-bold text-stone-900 dark:text-white">1. البيانات الأساسية والتعريف</h4>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-stone-700 mb-1">
-                    الاسم بالإنجليزية (اختياري)
-                  </label>
-                  <input
-                    type="text"
-                    dir="ltr"
-                    value={nameEn}
-                    onChange={(e) => setNameEn(e.target.value)}
-                    placeholder="Oval Marble Tray"
-                    className="w-full px-3 py-2 rounded-xl border border-stone-200 text-xs focus:ring-2 focus:ring-stone-900 bg-stone-50/50 text-left"
-                  />
-                </div>
-              </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                  <div>
+                    <label className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1">
+                      اسم المنتج (بالعربي) <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={nameAr}
+                      onChange={(e) => handleNameChange(e.target.value)}
+                      placeholder="مثال: صينية بيضاوية ماربل"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 dark:border-stone-700 text-xs focus:ring-2 focus:ring-stone-900 dark:focus:ring-brass-400 bg-white dark:bg-stone-800 dark:text-white"
+                    />
+                  </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div>
-                  <label className="block text-xs font-bold text-stone-700 mb-1">
-                    الفئة <span className="text-rose-500">*</span>
-                  </label>
-                  <select
-                    value={category}
-                    onChange={(e) => setCategory(e.target.value as CategoryKey)}
-                    className="w-full px-3 py-2 rounded-xl border border-stone-200 text-xs focus:ring-2 focus:ring-stone-900 bg-stone-50/50"
-                  >
-                    <option value="trays">صواني</option>
-                    <option value="coasters">قواعد أكواب (Coasters)</option>
-                    <option value="planters">أحواض نباتات</option>
-                    <option value="candle_holders">شمعدانات ومباخر</option>
-                    <option value="decor">تحف وفازات</option>
-                  </select>
-                </div>
+                  <div>
+                    <label className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1">
+                      الاسم بالإنجليزية (اختياري)
+                    </label>
+                    <input
+                      type="text"
+                      dir="ltr"
+                      value={nameEn}
+                      onChange={(e) => setNameEn(e.target.value)}
+                      placeholder="Oval Marble Tray"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 dark:border-stone-700 text-xs focus:ring-2 focus:ring-stone-900 dark:focus:ring-brass-400 bg-white dark:bg-stone-800 dark:text-white text-left"
+                    />
+                  </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-stone-700 mb-1">
-                    السعر (ج.م) <span className="text-rose-500">*</span>
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    step="5"
-                    required
-                    value={price}
-                    onChange={(e) => setPrice(Number(e.target.value))}
-                    className="w-full px-3 py-2 rounded-xl border border-stone-200 text-xs font-mono font-bold focus:ring-2 focus:ring-stone-900 bg-stone-50/50"
-                  />
-                </div>
+                  <div className="sm:col-span-2">
+                    <label className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1">
+                      رابط المعرّف (Slug) <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      dir="ltr"
+                      required
+                      value={slug}
+                      onChange={(e) => setSlug(e.target.value)}
+                      placeholder="oval-marble-tray"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 dark:border-stone-700 text-xs font-mono focus:ring-2 focus:ring-stone-900 dark:focus:ring-brass-400 bg-white dark:bg-stone-800 dark:text-white text-left"
+                    />
+                  </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-stone-700 mb-1">
-                    الكمية بالمخزون <span className="text-rose-500">*</span>
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    required
-                    value={stock}
-                    onChange={(e) => setStock(Number(e.target.value))}
-                    className="w-full px-3 py-2 rounded-xl border border-stone-200 text-xs font-mono font-bold focus:ring-2 focus:ring-stone-900 bg-stone-50/50"
-                  />
+                  <div className="sm:col-span-2">
+                    <label className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1">
+                      الوصف والتفاصيل اليدوية
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={descriptionAr}
+                      onChange={(e) => setDescriptionAr(e.target.value)}
+                      placeholder="صينية ديكورية بيضاوية متعددة الاستخدامات، مصبوبة يدوياً..."
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 dark:border-stone-700 text-xs focus:ring-2 focus:ring-stone-900 dark:focus:ring-brass-400 bg-white dark:bg-stone-800 dark:text-white"
+                    />
+                  </div>
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-stone-700 mb-1">
-                  رابط المعرّف (Slug) <span className="text-rose-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  dir="ltr"
-                  required
-                  value={slug}
-                  onChange={(e) => setSlug(e.target.value)}
-                  placeholder="oval-marble-tray"
-                  className="w-full px-3 py-2 rounded-xl border border-stone-200 text-xs font-mono focus:ring-2 focus:ring-stone-900 bg-stone-50/50 text-left"
-                />
+              {/* SECTION 2: Commercial Pricing & Inventory */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-stone-50/70 dark:bg-stone-800/40 border border-stone-200/80 dark:border-stone-800 space-y-4">
+                <div className="flex items-center gap-2 pb-2 border-b border-stone-200/60 dark:border-stone-700/60">
+                  <DollarSign className="w-4 h-4 text-stone-600 dark:text-stone-400" />
+                  <h4 className="text-xs font-bold text-stone-900 dark:text-white">2. السعر والمخزون</h4>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                  <div>
+                    <label className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1">
+                      السعر (ج.م) <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="5"
+                      required
+                      value={price}
+                      onChange={(e) => setPrice(Number(e.target.value))}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 dark:border-stone-700 text-xs font-mono font-bold focus:ring-2 focus:ring-stone-900 dark:focus:ring-brass-400 bg-white dark:bg-stone-800 dark:text-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1">
+                      الكمية بالمخزون <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      required
+                      value={stock}
+                      onChange={(e) => setStock(Number(e.target.value))}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 dark:border-stone-700 text-xs font-mono font-bold focus:ring-2 focus:ring-stone-900 dark:focus:ring-brass-400 bg-white dark:bg-stone-800 dark:text-white"
+                    />
+                  </div>
+                </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-stone-700 mb-1">
-                  الأبعاد والمواصفات (مثال: 18سم × 9سم)
-                </label>
-                <input
-                  type="text"
-                  value={dimensions}
-                  onChange={(e) => setDimensions(e.target.value)}
-                  placeholder="18سم × 9.5سم × 1.5سم"
-                  className="w-full px-3 py-2 rounded-xl border border-stone-200 text-xs focus:ring-2 focus:ring-stone-900 bg-stone-50/50"
-                />
-              </div>
+              {/* SECTION 3: Catalog & Architecture */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-stone-50/70 dark:bg-stone-800/40 border border-stone-200/80 dark:border-stone-800 space-y-4">
+                <div className="flex items-center gap-2 pb-2 border-b border-stone-200/60 dark:border-stone-700/60">
+                  <Layers className="w-4 h-4 text-stone-600 dark:text-stone-400" />
+                  <h4 className="text-xs font-bold text-stone-900 dark:text-white">3. التصنيف والمجموعات</h4>
+                </div>
 
-              <div>
-                <label className="block text-xs font-bold text-stone-700 mb-1">
-                  الوصف والتفاصيل اليدوية
-                </label>
-                <textarea
-                  rows={3}
-                  value={descriptionAr}
-                  onChange={(e) => setDescriptionAr(e.target.value)}
-                  placeholder="صينية ديكورية بيضاوية متعددة الاستخدامات، مصبوبة يدوياً بخلطة كونكريت ناعمة..."
-                  className="w-full px-3 py-2 rounded-xl border border-stone-200 text-xs focus:ring-2 focus:ring-stone-900 bg-stone-50/50"
-                />
-              </div>
+                <div className="space-y-3.5">
+                  <div>
+                    <label className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1">
+                      الفئة الأساسية <span className="text-rose-500">*</span>
+                    </label>
+                    <select
+                      value={category}
+                      onChange={(e) => setCategory(e.target.value as CategoryKey)}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 dark:border-stone-700 text-xs font-bold focus:ring-2 focus:ring-stone-900 dark:focus:ring-brass-400 bg-white dark:bg-stone-800 dark:text-white"
+                    >
+                      <option value="trays">صواني ديكورية</option>
+                      <option value="coasters">قواعد أكواب (Coasters)</option>
+                      <option value="planters">أحواض نباتات وزريعة</option>
+                      <option value="candle_holders">شمعدانات ومباخر</option>
+                      <option value="decor">ديكور وتحف وفازات</option>
+                      <option value="gift_sets">أطقم هدايا 🎁</option>
+                      <option value="ready_sets">أطقم ديكورات جاهزة 🤎</option>
+                    </select>
+                  </div>
 
-              {/* Personalization Section */}
-              <div className="p-4 rounded-2xl bg-stone-50/90 border border-stone-200 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-brass-600" />
-                    <div>
-                      <label htmlFor="allow-personalization-toggle" className="text-xs font-bold text-stone-900 cursor-pointer">
-                        إتاحة النقش / التخصيص للعميل
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="block text-xs font-bold text-stone-700 dark:text-stone-300">
+                        المجموعة / الموسم (Collection)
                       </label>
-                      <p className="text-[11px] text-stone-500">
-                        السماح للمشتري بكتابة اسم أو إهداء يتم نقشه يدوياً على هذه القطعة
+                      {collection && (
+                        <button
+                          type="button"
+                          onClick={() => setCollection('')}
+                          className="text-[10px] text-rose-600 dark:text-rose-400 hover:underline"
+                        >
+                          مسح
+                        </button>
+                      )}
+                    </div>
+                    <input
+                      type="text"
+                      value={collection}
+                      onChange={(e) => setCollection(e.target.value)}
+                      placeholder="مثال: ramadan أو wedding أو اتركها فارغة"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 dark:border-stone-700 text-xs font-mono focus:ring-2 focus:ring-stone-900 dark:focus:ring-brass-400 bg-white dark:bg-stone-800 dark:text-white mb-1.5"
+                    />
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      {[
+                        { key: 'ramadan', label: '🌙 رمضان' },
+                        { key: 'wedding', label: '💍 زفاف' },
+                        { key: 'giveaways', label: '🎁 توزيعات' },
+                        { key: 'illuminated', label: '💡 مضيئة' },
+                        { key: 'resin', label: '✨ ريزن' },
+                      ].map((preset) => (
+                        <button
+                          key={preset.key}
+                          type="button"
+                          onClick={() => setCollection(preset.key)}
+                          className={`text-[10px] px-2 py-0.5 rounded-md border transition-all ${
+                            collection === preset.key
+                              ? 'bg-stone-900 text-white dark:bg-brass-500 dark:text-stone-950 border-stone-900 dark:border-brass-500 font-bold'
+                              : 'bg-white dark:bg-stone-800 text-stone-600 dark:text-stone-300 border-stone-200 dark:border-stone-700 hover:bg-stone-100 dark:hover:bg-stone-700'
+                          }`}
+                        >
+                          {preset.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* is_unfinished Checkbox */}
+                  <div className="p-3 rounded-xl bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 flex items-center justify-between">
+                    <div>
+                      <span className="text-xs font-bold text-stone-900 dark:text-white block">
+                        قطعة بدون فنش / للتلوين والإبداع 🎨
+                      </span>
+                      <p className="text-[10px] text-stone-400 dark:text-stone-500">
+                        قطعة مصبوبة سادة مجهزة للعميل ليلونها بنفسه
                       </p>
                     </div>
+                    <label className="relative inline-flex items-center cursor-pointer shrink-0 mr-3">
+                      <input
+                        type="checkbox"
+                        checked={isUnfinished}
+                        onChange={(e) => setIsUnfinished(e.target.checked)}
+                        className="sr-only peer"
+                      />
+                      <div className="w-9 h-5 bg-stone-200 dark:bg-stone-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-stone-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-stone-900 dark:peer-checked:bg-brass-500"></div>
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              {/* SECTION 4: Personalization */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-stone-50/70 dark:bg-stone-800/40 border border-stone-200/80 dark:border-stone-800 space-y-3.5">
+                <div className="flex items-center justify-between pb-2 border-b border-stone-200/60 dark:border-stone-700/60">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-brass-600 dark:text-brass-400" />
+                    <h4 className="text-xs font-bold text-stone-900 dark:text-white">4. النقش والتخصيص</h4>
                   </div>
                   <label className="relative inline-flex items-center cursor-pointer">
                     <input
-                      id="allow-personalization-toggle"
                       type="checkbox"
                       checked={allowPersonalization}
                       onChange={(e) => setAllowPersonalization(e.target.checked)}
                       className="sr-only peer"
                     />
-                    <div className="w-9 h-5 bg-stone-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-stone-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-stone-900"></div>
+                    <div className="w-9 h-5 bg-stone-200 dark:bg-stone-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-stone-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-stone-900 dark:peer-checked:bg-brass-500"></div>
                   </label>
                 </div>
 
                 {allowPersonalization && (
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 border-t border-stone-200">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
                     <div className="sm:col-span-2">
-                      <label className="block text-xs font-bold text-stone-700 mb-1">
-                        نص إرشاد التخصيص (Label)
+                      <label className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1">
+                        نص إرشاد العميل (Label)
                       </label>
                       <input
                         type="text"
                         value={personalizationLabel}
                         onChange={(e) => setPersonalizationLabel(e.target.value)}
-                        placeholder="مثال: اكتب الأسماء أو عبارة الإهداء المطلوبة"
-                        className="w-full px-3 py-2 rounded-xl border border-stone-200 text-xs focus:ring-2 focus:ring-stone-900 bg-white"
+                        placeholder="مثال: اكتب الاسم أو العبارة المطلوبة"
+                        className="w-full px-3 py-2 rounded-xl border border-stone-200 dark:border-stone-700 text-xs focus:ring-2 focus:ring-stone-900 dark:focus:ring-brass-400 bg-white dark:bg-stone-800 dark:text-white"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-xs font-bold text-stone-700 mb-1">
+                      <label className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1">
                         الحد الأقصى للأحرف
                       </label>
                       <input
@@ -557,22 +773,32 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
                         max="200"
                         value={personalizationMaxChars}
                         onChange={(e) => setPersonalizationMaxChars(Number(e.target.value))}
-                        className="w-full px-3 py-2 rounded-xl border border-stone-200 text-xs font-mono font-bold focus:ring-2 focus:ring-stone-900 bg-white"
+                        className="w-full px-3 py-2 rounded-xl border border-stone-200 dark:border-stone-700 text-xs font-mono font-bold focus:ring-2 focus:ring-stone-900 dark:focus:ring-brass-400 bg-white dark:bg-stone-800 dark:text-white"
                       />
                     </div>
                   </div>
                 )}
               </div>
 
-              {/* Product Image Section */}
-              <div>
-                <label className="block text-xs font-bold text-stone-700 mb-2">
-                  صورة المنتج
-                </label>
+              {/* SECTION 5: Specifications */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-stone-50/70 dark:bg-stone-800/40 border border-stone-200/80 dark:border-stone-800 space-y-3">
+                <h4 className="text-xs font-bold text-stone-900 dark:text-white">5. الأبعاد والمواصفات</h4>
+                <input
+                  type="text"
+                  value={dimensions}
+                  onChange={(e) => setDimensions(e.target.value)}
+                  placeholder="مثال: 18سم × 9.5سم × 1.5سم"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 dark:border-stone-700 text-xs focus:ring-2 focus:ring-stone-900 dark:focus:ring-brass-400 bg-white dark:bg-stone-800 dark:text-white"
+                />
+              </div>
+
+              {/* SECTION 6: Media & Image */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-stone-50/70 dark:bg-stone-800/40 border border-stone-200/80 dark:border-stone-800 space-y-3">
+                <h4 className="text-xs font-bold text-stone-900 dark:text-white">6. صورة المنتج</h4>
 
                 <div className="flex items-center gap-4">
                   {imageUrl && (
-                    <div className="relative w-16 h-16 rounded-xl overflow-hidden border border-stone-200 bg-stone-100 shrink-0">
+                    <div className="relative w-16 h-16 rounded-2xl overflow-hidden border border-stone-200 dark:border-stone-700 bg-stone-100 dark:bg-stone-800 shrink-0">
                       <Image
                         src={imageUrl}
                         alt="معاينة الصورة"
@@ -590,33 +816,47 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
                         const file = e.target.files?.[0];
                         if (file) handleImageUpload(file);
                       }}
-                      className="block w-full text-xs text-stone-500 file:mr-0 file:ml-3 file:py-2 file:px-3.5 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-stone-900 file:text-white hover:file:bg-stone-800 cursor-pointer"
+                      className="block w-full text-xs text-stone-500 file:mr-0 file:ml-3 file:py-2 file:px-3.5 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-stone-900 dark:file:bg-brass-500 file:text-white dark:file:text-stone-950 hover:file:bg-stone-800 cursor-pointer"
                     />
                     {imageUploading && (
-                      <p className="text-[11px] text-amber-600 mt-1">جاري رفع الصورة إلى التخزين السحابي...</p>
+                      <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-1">جاري رفع الصورة إلى التخزين السحابي...</p>
                     )}
                   </div>
                 </div>
-              </div>
 
-              <div className="pt-4 border-t border-stone-100 flex justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2.5 rounded-xl border border-stone-200 text-xs font-semibold text-stone-600 hover:bg-stone-100"
-                >
-                  إلغاء
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSaving || imageUploading}
-                  className="px-5 py-2.5 rounded-xl bg-stone-900 hover:bg-stone-800 text-white text-xs font-bold transition-colors disabled:opacity-50"
-                >
-                  {isSaving ? 'جاري الحفظ...' : editingProduct ? 'تحديث القطعة' : 'إضافة القطعة'}
-                </button>
+                <input
+                  type="url"
+                  dir="ltr"
+                  placeholder="أو أدخل رابط الصورة مباشرة: https://..."
+                  value={imageUrl}
+                  onChange={(e) => setImageUrl(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl border border-stone-200 dark:border-stone-700 text-[11px] font-mono text-left bg-white dark:bg-stone-800 dark:text-white"
+                />
               </div>
 
             </form>
+
+            {/* Sticky Footer */}
+            <div className="p-4 sm:p-5 border-t border-stone-100 dark:border-stone-800 bg-white/95 dark:bg-stone-900/95 backdrop-blur flex justify-end gap-2.5 shrink-0">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setIsModalOpen(false)}
+              >
+                إلغاء
+              </Button>
+              <Button
+                type="submit"
+                form="product-form"
+                disabled={isSaving || imageUploading}
+                isLoading={isSaving}
+                variant="primary"
+                size="sm"
+              >
+                {editingProduct ? 'تحديث القطعة' : 'إضافة القطعة'}
+              </Button>
+            </div>
 
           </div>
         </div>
@@ -624,37 +864,39 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
 
       {/* Confirmation Modal for Toggle / Soft Delete */}
       {confirmModal.isOpen && confirmModal.product && (
-        <div className="fixed inset-0 z-50 bg-stone-950/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="relative max-w-sm w-full bg-white rounded-3xl p-6 shadow-2xl text-center">
-            <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-700 flex items-center justify-center mx-auto mb-4 border border-amber-200">
+        <div className="fixed inset-0 z-50 bg-stone-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="relative max-w-sm w-full bg-white dark:bg-stone-900 rounded-3xl p-6 shadow-2xl border border-stone-200 dark:border-stone-800 text-center">
+            <div className="w-12 h-12 rounded-2xl bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400 flex items-center justify-center mx-auto mb-4 border border-amber-200 dark:border-amber-800">
               <AlertCircle className="w-6 h-6" />
             </div>
 
-            <h3 className="font-bold text-base text-stone-900 mb-2">
+            <h3 className="font-bold text-base text-stone-900 dark:text-white mb-2">
               {confirmModal.product.is_active ? 'إخفاء المنتج من المتجر؟' : 'إعادة تفعيل المنتج؟'}
             </h3>
 
-            <p className="text-xs text-stone-500 mb-6 leading-relaxed">
+            <p className="text-xs text-stone-500 dark:text-stone-400 mb-6 leading-relaxed">
               {confirmModal.product.is_active
                 ? `سيتم إخفاء "${confirmModal.product.name_ar}" من واجهة العميل مع الحفاظ على كافة بيانات الطلبات التاريخية المرتبطة به.`
                 : `سيتم إظهار "${confirmModal.product.name_ar}" فوراً لعملاء المتجر للشراء.`}
             </p>
 
             <div className="flex gap-2">
-              <button
-                type="button"
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={() => setConfirmModal({ isOpen: false, product: null, action: 'toggle' })}
-                className="flex-1 py-2.5 rounded-xl border border-stone-200 text-xs font-semibold text-stone-600 hover:bg-stone-50"
+                className="flex-1"
               >
                 تراجع
-              </button>
-              <button
-                type="button"
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
                 onClick={executeConfirmAction}
-                className="flex-1 py-2.5 rounded-xl bg-stone-900 hover:bg-stone-800 text-white text-xs font-bold transition-colors"
+                className="flex-1"
               >
                 تأكيد
-              </button>
+              </Button>
             </div>
           </div>
         </div>

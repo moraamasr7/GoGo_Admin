@@ -7,6 +7,7 @@ const updateProfileSchema = z.object({
   currentPassword: z.string().min(6, 'كلمة المرور الحالية مطلوبة للتأكيد'),
   newEmail: z.string().email('صيغة البريد الإلكتروني غير صحيحة').optional().or(z.literal('')),
   newPassword: z.string().min(8, 'كلمة المرور الجديدة يجب ألا تقل عن 8 أحرف').optional().or(z.literal('')),
+  fullName: z.string().min(2, 'الاسم يجب ألا يقل عن حرفين').optional().or(z.literal('')),
 });
 
 export async function POST(req: NextRequest) {
@@ -25,11 +26,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: parseResult.error.errors[0].message }, { status: 400 });
     }
 
-    const { currentPassword, newEmail, newPassword } = parseResult.data;
+    const { currentPassword, newEmail, newPassword, fullName } = parseResult.data;
 
-    // Must provide either new email or new password
-    if (!newEmail && !newPassword) {
-      return NextResponse.json({ error: 'يرجى إدخال بريد إلكتروني جديد أو كلمة مرور جديدة.' }, { status: 400 });
+    // Must provide either new email, new password, or full name
+    if (!newEmail && !newPassword && !fullName) {
+      return NextResponse.json({ error: 'يرجى إدخال بيانات جديدة لتحديثها.' }, { status: 400 });
     }
 
     // 2. Verify current password securely on the server
@@ -42,42 +43,51 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'كلمة المرور الحالية غير صحيحة.' }, { status: 403 });
     }
 
-    // 3. Prepare updates
-    const updates: { email?: string; password?: string } = {};
+    // 3. Prepare auth credentials updates
+    const authUpdates: { email?: string; password?: string } = {};
 
     if (newEmail && newEmail.toLowerCase() !== user.email.toLowerCase()) {
-      updates.email = newEmail.toLowerCase().trim();
+      authUpdates.email = newEmail.toLowerCase().trim();
     }
 
     if (newPassword) {
-      updates.password = newPassword;
+      authUpdates.password = newPassword;
     }
 
-    if (Object.keys(updates).length === 0) {
-      return NextResponse.json({ error: 'البيانات المدخلة مطابقة للبيانات الحالية بالفعل.' }, { status: 400 });
+    let authUpdated = false;
+    if (Object.keys(authUpdates).length > 0) {
+      const { error: updateError } = await supabase.auth.updateUser(authUpdates);
+      if (updateError) {
+        return NextResponse.json({ error: updateError.message || 'فشل تحديث بيانات الدخول في الخادم.' }, { status: 500 });
+      }
+      authUpdated = true;
     }
 
-    // 4. Perform secure server-side updateUser
-    const { data: updateData, error: updateError } = await supabase.auth.updateUser(updates);
-
-    if (updateError) {
-      return NextResponse.json({ error: updateError.message || 'فشل تحديث البيانات في الخادم.' }, { status: 500 });
-    }
-
-    // If email was changed, update admin_profiles table as well
-    if (updates.email) {
-      await supabase
+    // 4. Update profile full_name if provided
+    let profileUpdated = false;
+    if (fullName && fullName.trim()) {
+      const { error: profileError } = await supabase
         .from('admin_profiles')
-        .update({ email: updates.email, updated_at: new Date().toISOString() })
+        .update({ full_name: fullName.trim(), updated_at: new Date().toISOString() })
         .eq('id', user.id);
+
+      if (profileError) {
+        return NextResponse.json({ error: profileError.message || 'فشل تحديث الاسم في الملف الشخصي.' }, { status: 500 });
+      }
+      profileUpdated = true;
+    }
+
+    if (!authUpdated && !profileUpdated) {
+      return NextResponse.json({ error: 'البيانات المدخلة مطابقة للبيانات الحالية بالفعل.' }, { status: 400 });
     }
 
     return NextResponse.json({
       success: true,
-      emailChanged: Boolean(updates.email),
-      passwordChanged: Boolean(updates.password),
-      newEmail: updates.email || user.email,
-      message: 'تم تحديث بيانات المدير بنجاح وأمان.'
+      emailChanged: Boolean(authUpdates.email),
+      passwordChanged: Boolean(authUpdates.password),
+      fullNameChanged: profileUpdated,
+      newEmail: authUpdates.email || user.email,
+      message: 'تم تحديث بيانات الحساب بنجاح وأمان.'
     });
 
   } catch (err: any) {

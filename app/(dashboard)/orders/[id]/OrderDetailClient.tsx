@@ -22,6 +22,7 @@ import { formatPrice, formatDate, getStatusLabel } from '@/lib/utils';
 import { generateAdminCustomerWhatsAppUrl, defaultStatusMessages, getWhatsAppStatusTemplate } from '@/lib/whatsapp';
 import { createClient } from '@/lib/supabase/client';
 import { toast } from 'react-hot-toast';
+import { Button } from '@/components/ui/Button';
 
 interface OrderDetailClientProps {
   initialOrder: Order;
@@ -134,17 +135,17 @@ export default function OrderDetailClient({ initialOrder }: OrderDetailClientPro
     <div className="space-y-6">
       
       {/* Header Bar */}
-      <div className="p-6 rounded-3xl bg-white border border-stone-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="p-6 rounded-3xl bg-white dark:bg-stone-900 border border-stone-200/90 dark:border-stone-800 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="font-mono font-black text-xl text-stone-900">
+          <div className="flex items-center gap-2.5 mb-1">
+            <span className="font-mono font-black text-2xl text-stone-900 dark:text-white">
               #{order.order_number}
             </span>
-            <span className={`px-2.5 py-0.5 rounded-full border text-xs font-bold ${statusInfo.bg} ${statusInfo.text} ${statusInfo.border}`}>
+            <span className={`px-3 py-1 rounded-xl border text-xs font-bold ${statusInfo.bg} ${statusInfo.text} ${statusInfo.border}`}>
               {statusInfo.label}
             </span>
           </div>
-          <p className="text-xs text-stone-500">
+          <p className="text-xs text-stone-500 dark:text-stone-400">
             تاريخ التسجيل: {formatDate(order.created_at)}
           </p>
         </div>
@@ -155,22 +156,23 @@ export default function OrderDetailClient({ initialOrder }: OrderDetailClientPro
             href={whatsappUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-bold shadow-sm transition-colors"
+            className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-2xl bg-emerald-700 hover:bg-emerald-600 dark:bg-emerald-600 dark:hover:bg-emerald-500 text-white text-xs font-bold shadow-xs transition-colors"
           >
             <MessageCircle className="w-4 h-4" />
             <span>تواصل مع العميل عبر واتساب</span>
           </a>
 
           {order.payment_screenshot_path && (
-            <button
-              type="button"
+            <Button
               onClick={handleViewReceipt}
               disabled={isLoadingReceipt}
-              className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-stone-900 hover:bg-stone-800 text-sand-50 text-xs font-bold shadow-sm transition-colors"
+              isLoading={isLoadingReceipt}
+              variant="secondary"
+              size="md"
+              leftIcon={<Receipt className="w-4 h-4 text-brass-500 dark:text-brass-400" />}
             >
-              <Receipt className="w-4 h-4 text-brass-400" />
-              <span>{isLoadingReceipt ? 'جاري الفتح...' : 'معاينة إيصال التحويل'}</span>
-            </button>
+              معاينة إيصال التحويل
+            </Button>
           )}
         </div>
       </div>
@@ -181,15 +183,15 @@ export default function OrderDetailClient({ initialOrder }: OrderDetailClientPro
         <div className="lg:col-span-8 space-y-6">
           
           {/* Items Breakdown Table */}
-          <div className="p-6 rounded-3xl bg-white border border-stone-200 shadow-sm space-y-4">
-            <h2 className="text-sm font-bold text-stone-900 pb-3 border-b border-stone-100">
+          <div className="p-6 rounded-3xl bg-white dark:bg-stone-900 border border-stone-200/90 dark:border-stone-800 shadow-xs space-y-4">
+            <h2 className="text-sm font-bold text-stone-900 dark:text-white pb-3 border-b border-stone-100 dark:border-stone-800">
               القطع المطلوبة ({order.order_items?.length || 0})
             </h2>
 
             <div className="overflow-x-auto">
               <table className="w-full text-right text-xs">
                 <thead>
-                  <tr className="text-stone-400 border-b border-stone-100 font-semibold">
+                  <tr className="text-stone-400 dark:text-stone-500 border-b border-stone-100 dark:border-stone-800 font-semibold">
                     <th className="pb-3">المنتج</th>
                     <th className="pb-3">اللون</th>
                     <th className="pb-3">الكمية</th>
@@ -197,33 +199,33 @@ export default function OrderDetailClient({ initialOrder }: OrderDetailClientPro
                     <th className="pb-3 text-left">الإجمالي</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-stone-100 font-medium">
+                <tbody className="divide-y divide-stone-100 dark:divide-stone-800 font-medium">
                   {order.order_items?.map((item) => (
-                    <tr key={item.id} className="hover:bg-stone-50/50">
-                      <td className="py-3 font-semibold text-stone-900">
+                    <tr key={item.id} className="hover:bg-stone-50/50 dark:hover:bg-stone-800/40">
+                      <td className="py-3 font-semibold text-stone-900 dark:text-white">
                         <div>{item.product_name_ar}</div>
                         {item.custom_attributes?.custom_text && (
-                          <div className="inline-flex items-center gap-1 text-[11px] font-normal text-brass-700 bg-sand-100 border border-sand-300 px-2 py-0.5 rounded-md mt-1">
-                            <Sparkles className="w-3 h-3 text-brass-600 shrink-0" />
-                            <span>النقش المخصص: <strong className="font-bold text-stone-900">{item.custom_attributes.custom_text}</strong></span>
+                          <div className="inline-flex items-center gap-1 text-[11px] font-normal text-brass-700 dark:text-brass-400 bg-sand-100 dark:bg-stone-800 border border-sand-300 dark:border-stone-700 px-2 py-0.5 rounded-md mt-1">
+                            <Sparkles className="w-3 h-3 text-brass-600 dark:text-brass-400 shrink-0" />
+                            <span>النقش المخصص: <strong className="font-bold text-stone-900 dark:text-white">{item.custom_attributes.custom_text}</strong></span>
                           </div>
                         )}
                         {item.custom_attributes?.finish && (
-                          <div className="text-[10px] text-stone-500 mt-0.5">
-                            التشطيب: <span className="font-semibold text-stone-700">{item.custom_attributes.finish}</span>
+                          <div className="text-[10px] text-stone-500 dark:text-stone-400 mt-0.5">
+                            التشطيب: <span className="font-semibold text-stone-700 dark:text-stone-300">{item.custom_attributes.finish}</span>
                           </div>
                         )}
                       </td>
-                      <td className="py-3 text-stone-600">
+                      <td className="py-3 text-stone-600 dark:text-stone-400">
                         {item.selected_color || 'افتراضي'}
                       </td>
-                      <td className="py-3 font-mono font-bold text-stone-800">
+                      <td className="py-3 font-mono font-bold text-stone-800 dark:text-stone-200">
                         {item.quantity}
                       </td>
-                      <td className="py-3 font-mono text-stone-600">
+                      <td className="py-3 font-mono text-stone-600 dark:text-stone-400">
                         {formatPrice(item.unit_price)}
                       </td>
-                      <td className="py-3 font-mono font-bold text-stone-900 text-left">
+                      <td className="py-3 font-mono font-bold text-stone-900 dark:text-white text-left">
                         {formatPrice(item.total_price)}
                       </td>
                     </tr>
@@ -233,26 +235,26 @@ export default function OrderDetailClient({ initialOrder }: OrderDetailClientPro
             </div>
 
             {/* Financial Summary Breakdown */}
-            <div className="pt-4 border-t border-stone-100 space-y-2 text-xs">
-              <div className="flex justify-between text-stone-600">
+            <div className="pt-4 border-t border-stone-100 dark:border-stone-800 space-y-2 text-xs">
+              <div className="flex justify-between text-stone-600 dark:text-stone-400">
                 <span>إجمالي قيمة المنتجات:</span>
-                <span className="font-mono font-bold text-stone-900">{formatPrice(order.total_amount)}</span>
+                <span className="font-mono font-bold text-stone-900 dark:text-white">{formatPrice(order.total_amount)}</span>
               </div>
-              <div className="flex justify-between text-emerald-800 font-bold bg-emerald-50 p-2.5 rounded-xl border border-emerald-200">
+              <div className="flex justify-between text-emerald-800 dark:text-emerald-300 font-bold bg-emerald-50 dark:bg-emerald-950/40 p-3 rounded-2xl border border-emerald-200 dark:border-emerald-800/60">
                 <span>العربون المطلوب ({order.deposit_percentage}%):</span>
                 <span className="font-mono text-sm">{formatPrice(order.deposit_amount)}</span>
               </div>
-              <div className="flex justify-between text-stone-600">
+              <div className="flex justify-between text-stone-600 dark:text-stone-400">
                 <span>المتبقي عند التسليم:</span>
-                <span className="font-mono font-bold text-stone-900">{formatPrice(order.remaining_amount)}</span>
+                <span className="font-mono font-bold text-stone-900 dark:text-white">{formatPrice(order.remaining_amount)}</span>
               </div>
             </div>
 
           </div>
 
           {/* Customer Details Card */}
-          <div className="p-6 rounded-3xl bg-white border border-stone-200 shadow-sm space-y-3">
-            <h2 className="text-sm font-bold text-stone-900 pb-3 border-b border-stone-100">
+          <div className="p-6 rounded-3xl bg-white dark:bg-stone-900 border border-stone-200/90 dark:border-stone-800 shadow-xs space-y-3">
+            <h2 className="text-sm font-bold text-stone-900 dark:text-white pb-3 border-b border-stone-100 dark:border-stone-800">
               بيانات العميل والتوصيل
             </h2>
 
@@ -260,24 +262,24 @@ export default function OrderDetailClient({ initialOrder }: OrderDetailClientPro
               <div className="flex items-start gap-2.5">
                 <User className="w-4 h-4 text-stone-400 shrink-0 mt-0.5" />
                 <div>
-                  <span className="text-stone-400 block text-[10px]">الاسم:</span>
-                  <span className="font-bold text-stone-900">{order.customer_name}</span>
+                  <span className="text-stone-400 dark:text-stone-500 block text-[10px]">الاسم:</span>
+                  <span className="font-bold text-stone-900 dark:text-white">{order.customer_name}</span>
                 </div>
               </div>
 
               <div className="flex items-start gap-2.5">
                 <Phone className="w-4 h-4 text-stone-400 shrink-0 mt-0.5" />
                 <div>
-                  <span className="text-stone-400 block text-[10px]">الهاتف (واتساب):</span>
-                  <span className="font-mono font-bold text-stone-900" dir="ltr">{order.customer_phone}</span>
+                  <span className="text-stone-400 dark:text-stone-500 block text-[10px]">الهاتف (واتساب):</span>
+                  <span className="font-mono font-bold text-stone-900 dark:text-white" dir="ltr">{order.customer_phone}</span>
                 </div>
               </div>
 
               <div className="sm:col-span-2 flex items-start gap-2.5">
                 <MapPin className="w-4 h-4 text-stone-400 shrink-0 mt-0.5" />
                 <div>
-                  <span className="text-stone-400 block text-[10px]">عنوان التوصيل:</span>
-                  <span className="font-medium text-stone-800 leading-relaxed">{order.customer_address}</span>
+                  <span className="text-stone-400 dark:text-stone-500 block text-[10px]">عنوان التوصيل:</span>
+                  <span className="font-medium text-stone-800 dark:text-stone-200 leading-relaxed">{order.customer_address}</span>
                 </div>
               </div>
 
@@ -285,15 +287,15 @@ export default function OrderDetailClient({ initialOrder }: OrderDetailClientPro
                 <div className="flex items-start gap-2.5">
                   <Mail className="w-4 h-4 text-stone-400 shrink-0 mt-0.5" />
                   <div>
-                    <span className="text-stone-400 block text-[10px]">البريد الإلكتروني:</span>
-                    <span className="font-mono text-stone-800" dir="ltr">{order.customer_email}</span>
+                    <span className="text-stone-400 dark:text-stone-500 block text-[10px]">البريد الإلكتروني:</span>
+                    <span className="font-mono text-stone-800 dark:text-stone-300" dir="ltr">{order.customer_email}</span>
                   </div>
                 </div>
               )}
 
               {order.customer_notes && (
-                <div className="sm:col-span-2 p-3 rounded-xl bg-sand-100 border border-sand-200 text-stone-800">
-                  <span className="text-stone-500 block text-[10px] font-bold mb-0.5">ملاحظات العميل:</span>
+                <div className="sm:col-span-2 p-3.5 rounded-2xl bg-sand-100 dark:bg-stone-800/80 border border-sand-200 dark:border-stone-700 text-stone-800 dark:text-stone-200">
+                  <span className="text-stone-500 dark:text-stone-400 block text-[10px] font-bold mb-0.5">ملاحظات العميل:</span>
                   <span>{order.customer_notes}</span>
                 </div>
               )}
@@ -305,19 +307,19 @@ export default function OrderDetailClient({ initialOrder }: OrderDetailClientPro
         {/* Right Column: Status Transition & Internal Notes */}
         <div className="lg:col-span-4 space-y-6">
           
-          <div className="p-6 rounded-3xl bg-white border border-stone-200 shadow-sm space-y-4">
-            <h2 className="text-sm font-bold text-stone-900 pb-3 border-b border-stone-100">
+          <div className="p-6 rounded-3xl bg-white dark:bg-stone-900 border border-stone-200/90 dark:border-stone-800 shadow-xs space-y-4">
+            <h2 className="text-sm font-bold text-stone-900 dark:text-white pb-3 border-b border-stone-100 dark:border-stone-800">
               تحديث حالة الطلب
             </h2>
 
             <div>
-              <label className="block text-xs font-bold text-stone-700 mb-2">
+              <label className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-2">
                 اختر الحالة الجديدة:
               </label>
               <select
                 value={status}
                 onChange={(e) => handleStatusChange(e.target.value as OrderStatus)}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-stone-900 bg-stone-50/50"
+                className="w-full px-3.5 py-2.5 rounded-2xl border border-stone-200 dark:border-stone-700 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-stone-900 dark:focus:ring-brass-400 bg-stone-50/50 dark:bg-stone-800 dark:text-white"
               >
                 <option value="pending">معلق (بانتظار العربون)</option>
                 <option value="confirmed">مؤكد (تم استلام العربون)</option>
@@ -329,76 +331,80 @@ export default function OrderDetailClient({ initialOrder }: OrderDetailClientPro
             </div>
 
             {/* Customer Facing WhatsApp Message */}
-            <div className="p-3.5 rounded-2xl bg-emerald-50/60 border border-emerald-200/80 space-y-2">
+            <div className="p-3.5 rounded-2xl bg-emerald-50/60 dark:bg-emerald-950/30 border border-emerald-200/80 dark:border-emerald-800/60 space-y-2">
               <div className="flex items-center justify-between">
-                <label className="block text-xs font-bold text-emerald-900">
-                  نص الرسالة المرسلة للعميل (واتساب):
+                <label className="block text-xs font-bold text-emerald-900 dark:text-emerald-300">
+                  نص الرسالة للعميل (واتساب):
                 </label>
-                <span className="text-[10px] text-emerald-700 font-semibold">تتحدث تلقائياً مع الحالة</span>
+                <span className="text-[10px] text-emerald-700 dark:text-emerald-400 font-semibold">تلقائي</span>
               </div>
               <textarea
                 value={customerMessage}
                 onChange={(e) => setCustomerMessage(e.target.value)}
                 rows={3}
                 placeholder="اكتب هنا الرسالة التي ستصل للعميل مع رابط الطلب..."
-                className="w-full px-3 py-2 rounded-xl border border-emerald-200 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-700 bg-white"
+                className="w-full px-3 py-2 rounded-xl border border-emerald-200 dark:border-emerald-800 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-700 bg-white dark:bg-stone-800 dark:text-white"
               />
             </div>
 
             {/* Internal Admin Notes */}
             <div>
-              <label className="block text-xs font-bold text-stone-700 mb-1.5">
-                ملاحظات الإدارة الداخلية (نحتفظ بها ولا تظهر للعميل):
+              <label className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1.5">
+                ملاحظات الإدارة الداخلية (خاصة):
               </label>
               <textarea
                 value={adminNotes}
                 onChange={(e) => setAdminNotes(e.target.value)}
                 rows={2}
-                placeholder="مثال: تم التأكد من تحويل فودافون كاش بتاريخ 8-9..."
-                className="w-full px-3 py-2 rounded-xl border border-stone-200 text-xs focus:outline-none focus:ring-2 focus:ring-stone-900 bg-stone-50/50"
+                placeholder="مثال: تم التأكد من تحويل فودافون كاش..."
+                className="w-full px-3.5 py-2.5 rounded-2xl border border-stone-200 dark:border-stone-700 text-xs focus:outline-none focus:ring-2 focus:ring-stone-900 dark:focus:ring-brass-400 bg-stone-50/50 dark:bg-stone-800 dark:text-white"
               />
             </div>
 
             {/* Action Buttons: Save & Save + Send */}
             <div className="space-y-2 pt-1">
-              <button
-                type="button"
+              <Button
                 onClick={() => handleUpdateOrder(true)}
                 disabled={isUpdating}
-                className="w-full py-3 px-4 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm transition-all active:scale-95 disabled:opacity-50"
+                isLoading={isUpdating}
+                variant="success"
+                size="md"
+                leftIcon={<MessageCircle className="w-4 h-4" />}
+                className="w-full"
               >
-                <MessageCircle className="w-4 h-4" />
-                <span>حفظ وتحديث الحالة وإرسال واتساب للعميل</span>
-              </button>
+                حفظ وتحديث وإرسال واتساب للعميل
+              </Button>
 
-              <button
-                type="button"
+              <Button
                 onClick={() => handleUpdateOrder(false)}
                 disabled={isUpdating}
-                className="w-full py-2.5 px-4 rounded-xl bg-stone-900 hover:bg-stone-800 text-sand-50 font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm transition-all active:scale-95 disabled:opacity-50"
+                variant="secondary"
+                size="md"
+                leftIcon={<Save className="w-3.5 h-3.5 text-brass-500" />}
+                className="w-full"
               >
-                <Save className="w-3.5 h-3.5 text-brass-400" />
-                <span>{isUpdating ? 'جاري الحفظ...' : 'حفظ التحديث في النظام فقط'}</span>
-              </button>
+                {isUpdating ? 'جاري الحفظ...' : 'حفظ التحديث في النظام فقط'}
+              </Button>
             </div>
           </div>
 
           {/* Payment receipt quick thumbnail */}
-          <div className="p-6 rounded-3xl bg-white border border-stone-200 shadow-sm space-y-3">
-            <h3 className="text-xs font-bold text-stone-900">إيصال التحويل المرفوع</h3>
+          <div className="p-6 rounded-3xl bg-white dark:bg-stone-900 border border-stone-200/90 dark:border-stone-800 shadow-xs space-y-3">
+            <h3 className="text-xs font-bold text-stone-900 dark:text-white">إيصال التحويل المرفوع</h3>
             {order.payment_screenshot_path ? (
               <div>
-                <button
-                  type="button"
+                <Button
                   onClick={handleViewReceipt}
-                  className="w-full py-2.5 px-3 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-800 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
+                  variant="secondary"
+                  size="sm"
+                  leftIcon={<ZoomIn className="w-4 h-4 text-stone-600 dark:text-stone-300" />}
+                  className="w-full"
                 >
-                  <ZoomIn className="w-4 h-4 text-stone-600" />
-                  <span>عرض وتكبير الإيصال</span>
-                </button>
+                  عرض وتكبير الإيصال
+                </Button>
               </div>
             ) : (
-              <p className="text-xs text-stone-400">لم يُرفق العميل إيصال تحويل.</p>
+              <p className="text-xs text-stone-400 dark:text-stone-500">لم يُرفق العميل إيصال تحويل.</p>
             )}
           </div>
 
@@ -409,20 +415,20 @@ export default function OrderDetailClient({ initialOrder }: OrderDetailClientPro
       {/* Payment Receipt Zoom Modal */}
       {showReceiptModal && receiptUrl && (
         <div className="fixed inset-0 z-50 bg-stone-950/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="relative max-w-2xl w-full bg-white rounded-3xl p-6 shadow-2xl overflow-hidden">
-            <div className="flex items-center justify-between pb-3 mb-4 border-b border-stone-100">
-              <h3 className="font-bold text-sm text-stone-900">
+          <div className="relative max-w-2xl w-full bg-white dark:bg-stone-900 rounded-3xl p-6 shadow-2xl border border-stone-200 dark:border-stone-800 overflow-hidden">
+            <div className="flex items-center justify-between pb-3 mb-4 border-b border-stone-100 dark:border-stone-800">
+              <h3 className="font-bold text-sm text-stone-900 dark:text-white">
                 إيصال تحويل العربون - طلب #{order.order_number}
               </h3>
               <button
                 onClick={() => setShowReceiptModal(false)}
-                className="p-1.5 rounded-lg text-stone-400 hover:bg-stone-100 hover:text-stone-800"
+                className="p-1.5 rounded-lg text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800 hover:text-stone-800 dark:hover:text-white transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="relative aspect-[3/4] max-h-[70vh] w-full rounded-2xl overflow-hidden bg-stone-100 border border-stone-200">
+            <div className="relative aspect-[3/4] max-h-[70vh] w-full rounded-2xl overflow-hidden bg-stone-100 dark:bg-stone-800 border border-stone-200 dark:border-stone-700">
               <Image
                 src={receiptUrl}
                 alt="إيصال التحويل"
@@ -432,13 +438,13 @@ export default function OrderDetailClient({ initialOrder }: OrderDetailClientPro
             </div>
 
             <div className="mt-4 flex justify-end">
-              <button
-                type="button"
+              <Button
+                variant="primary"
+                size="sm"
                 onClick={() => setShowReceiptModal(false)}
-                className="px-5 py-2 rounded-xl bg-stone-900 text-white text-xs font-semibold"
               >
                 إغلاق
-              </button>
+              </Button>
             </div>
           </div>
         </div>
